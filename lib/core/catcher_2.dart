@@ -168,10 +168,24 @@ class Catcher2 implements ReportModeAction {
     // FlutterError.onError catches SYNCHRONOUS errors for all platforms
 
     FlutterError.onError = (details) async {
-      _currentConfig.onFlutterError != null
+      String? extractRelevantWidget(FlutterErrorDetails details) {
+        final lines = details.toString().split('\n');
+        final startIndex = lines.indexWhere(
+              (line) => line.contains('The relevant error-causing widget was:'),
+        );
+        if (startIndex == -1) return null;
+        return lines.skip(startIndex).take(3).join('\n');
+      }
+
+      final relevantWidget = extractRelevantWidget(details);
+      final summary = details.summary.toDescription();
+
+      final cleanError = Exception('$summary\n\n$relevantWidget');
+      /*_currentConfig.onFlutterError != null
           ? _currentConfig.onFlutterError?.call(details)
-          : await _reportError(
-              details.exception,
+          : */
+      await _reportError(
+              cleanError,
               details.stack,
               errorDetails: details,
             );
